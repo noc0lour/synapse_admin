@@ -19,7 +19,6 @@ func (c *Client) ListRooms() ([]types.Room, error) {
 	q.Set("from", "0")
 	// TODO implement pagination for big homeservers
 	q.Set("limit", "99999999")
-	q.Set("guests", "true")
 	q.Set("access_token", c.AccessToken)
 	u.RawQuery = q.Encode()
 
