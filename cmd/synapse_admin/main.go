@@ -15,17 +15,28 @@ var args struct {
 	Loginuser     string `help:"User name for authentication" short:u`
 	Loginpassword string `help:"User password for authentication" short:w`
 	Server        string `help:"Matrix home server url" short:s`
+	Null          bool   `help:"Separate results with zero-byte" short:0`
 	User          struct {
-		List struct{} `cmd`
+		List       struct{} `cmd help:"List local user accounts"`
+		Deactivate struct {
+			UserId string `help: "UserID"`
+		} `cmd help:"User deactivation API"`
 	} `cmd help:"User administration"`
 	Room struct {
-		List struct{} `cmd`
+		List       struct{} `cmd help: "List rooms"`
+		MemberList struct {
+			RoomId string `help: "RoomID"`
+		} `cmd help: List room members`
 	} `cmd help:"Room administration"`
 }
 
 func main() {
 	// Parse commandline arguments
 	ctx := kong.Parse(&args)
+	arg_split := "\n"
+	if args.Null {
+		arg_split = "\000"
+	}
 	// Setup admin access
 	cli, err := gomatrix.NewClient(args.Server, "", "")
 	user := gomatrix.UserIdentifier{Type: "m.id.user", User: args.Loginuser}
@@ -58,9 +69,14 @@ func main() {
 				return
 			}
 			for i, u := range users {
-				fmt.Printf("%v,%v,%v,%v,%v,%v,%v\n", i, u.Name, u.IsGuest, u.Admin, u.UserType, u.Deactivated, u.DisplayName)
+				fmt.Printf("%v,%v,%v,%v,%v,%v,%v%s", i, u.Name, u.IsGuest, u.Admin, u.UserType, u.Deactivated, u.DisplayName, arg_split)
 			}
-
+		case "deactivate":
+			fmt.Printf("Deactivate() called for user %s\n", args.User.Deactivate.UserId)
+			err := user_cli.DeactivateUser(args.User.Deactivate.UserId)
+			if err != nil {
+				fmt.Printf("Deactivate() returned %v", err)
+			}
 		default:
 			panic(user_cmd)
 		}
@@ -75,11 +91,21 @@ func main() {
 				fmt.Println("ListRooms() returned ", err)
 				return
 			}
+			fmt.Printf("Room number, roomID, room name, room alias, number members, number local members, creator\n")
 			for i, r := range rooms {
-					fmt.Printf("%v,%v,%v,%v,%v,%v,%v\n", i, r.Id, r.Name, r.Alias, r.JoinedMembers, r.JoinedLocalMembers, r.Creator)
+				fmt.Printf("%v,%v,%v,%v,%v,%v,%v%s", i, r.Id, r.Name, r.Alias, r.JoinedMembers, r.JoinedLocalMembers, r.Creator, arg_split)
 				// fmt.Printf("%+v\n", r)
 			}
-
+		case "member-list":
+			// fmt.Printf("RoomID: %v\n", args.Room.MemberList.RoomId)
+			members, err := room_cli.ListRoomMembers(args.Room.MemberList.RoomId)
+			if err != nil {
+				fmt.Println("ListRoomMembers() returned ", err)
+				return
+			}
+			for _, r := range members {
+				fmt.Printf("%v%s", r, arg_split)
+			}
 		}
 	} else {
 		panic("Panic!")

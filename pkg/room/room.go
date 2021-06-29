@@ -40,3 +40,28 @@ func (c *Client) ListRooms() ([]types.Room, error) {
 	err = json.NewDecoder(resp.Body).Decode(&roomlist)
 	return roomlist.Rooms, err
 }
+
+func (c *Client) ListRoomMembers(roomId string) ([]string, error) {
+	u, err := url.Parse(c.BuildBaseURL("_synapse", "admin", "v1", "rooms", roomId, "members"))
+	q := u.Query()
+	q.Set("access_token", c.AccessToken)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.Client.Client.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var response struct {
+		Members []string `json: "members"`
+		Total   int      `json: "total`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	return response.Members, err
+}

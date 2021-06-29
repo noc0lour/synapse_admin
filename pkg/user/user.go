@@ -43,3 +43,23 @@ func (c *Client) ListUsers() ([]types.User, error) {
 	err = json.NewDecoder(resp.Body).Decode(&userlist)
 	return userlist.Users, err
 }
+
+func (c *Client) DeactivateUser(UserId string) (error) {
+	u, err := url.Parse(c.BuildBaseURL("_synapse", "admin", "v1", "deactivate", UserId))
+	q := u.Query()
+	q.Set("access_token", c.AccessToken)
+	u.RawQuery = q.Encode()
+
+	// Build Request
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return err
+	}
+	resp, err := c.Client.Client.Client.Do(req)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
