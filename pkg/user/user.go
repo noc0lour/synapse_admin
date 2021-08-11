@@ -6,11 +6,51 @@ import (
 	"github.com/noc0lour/synapse_admin/pkg/client"
 	"net/http"
 	"net/url"
+	// "fmt"
+	// "io/ioutil"
 )
-
 
 type Client struct {
 	*client.Client
+}
+
+func GetLastSeen(whois types.Whois) (int) {
+	LastAccess := 0
+	for _, dev := range whois.Devices {
+		for _, sess := range dev.Sessions {
+			for _, conn := range sess.Connections {
+				if conn.LastSeen > LastAccess {
+					LastAccess = conn.LastSeen
+				}
+			}
+		}
+	}
+	return LastAccess
+}
+
+func (c *Client) WhoisUser(UserId string) (types.Whois, error) {
+	var whois types.Whois
+	// Build URL
+	u, err := url.Parse(c.BuildBaseURL("_synapse", "admin", "v1", "whois", UserId))
+	q := u.Query()
+	q.Set("access_token", c.AccessToken)
+	u.RawQuery = q.Encode()
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return whois, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := c.Client.Client.Client.Do(req)
+	if err != nil {
+		return whois, err
+	}
+	defer resp.Body.Close()
+
+	// bodyBytes, err := ioutil.ReadAll(resp.Body)
+	// bodyString := string(bodyBytes)
+	// fmt.Printf("%v", bodyString)
+	err = json.NewDecoder(resp.Body).Decode(&whois)
+	return whois, err
 }
 
 // Methods
@@ -44,7 +84,7 @@ func (c *Client) ListUsers() ([]types.User, error) {
 	return userlist.Users, err
 }
 
-func (c *Client) DeactivateUser(UserId string) (error) {
+func (c *Client) DeactivateUser(UserId string) error {
 	u, err := url.Parse(c.BuildBaseURL("_synapse", "admin", "v1", "deactivate", UserId))
 	q := u.Query()
 	q.Set("access_token", c.AccessToken)

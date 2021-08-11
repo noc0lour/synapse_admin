@@ -21,6 +21,9 @@ var args struct {
 		Deactivate struct {
 			UserId string `help: "UserID"`
 		} `cmd help:"User deactivation API"`
+		Whois struct {
+			UserId string `arg help: "UserID"`
+		} `cmd help: "Query whois information of a single user"`
 	} `cmd help:"User administration"`
 	Room struct {
 		List       struct{} `cmd help: "List rooms"`
@@ -69,7 +72,9 @@ func main() {
 				return
 			}
 			for i, u := range users {
-				fmt.Printf("%v,%v,%v,%v,%v,%v,%v%s", i, u.Name, u.IsGuest, u.Admin, u.UserType, u.Deactivated, u.DisplayName, arg_split)
+				w, _ := user_cli.WhoisUser(u.Name)
+				LastSeen := sa_user.GetLastSeen(w)
+				fmt.Printf("%v,%v,%v,%v,%v,%v,%v,%v,%s", i, u.Name, u.IsGuest, u.Admin, u.UserType, u.Deactivated, u.DisplayName, LastSeen, arg_split)
 			}
 		case "deactivate":
 			fmt.Printf("Deactivate() called for user %s\n", args.User.Deactivate.UserId)
@@ -77,6 +82,13 @@ func main() {
 			if err != nil {
 				fmt.Printf("Deactivate() returned %v", err)
 			}
+		case "whois <user-id>":
+			whois, err := user_cli.WhoisUser(args.User.Whois.UserId)
+			if err != nil {
+				fmt.Printf("Whois() returned %v", err)
+			}
+			fmt.Printf("%+v\n", whois)
+
 		default:
 			panic(user_cmd)
 		}
