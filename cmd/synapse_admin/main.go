@@ -96,7 +96,7 @@ func main() {
 			if err != nil {
 				fmt.Printf("ListLastSeen() returned %v", err)
 			}
-			fmt.Printf("%v", strings.Join(users, "\n"))
+			fmt.Printf("%v\n", strings.Join(users, "\n"))
 		default:
 			panic(user_cmd)
 		}
