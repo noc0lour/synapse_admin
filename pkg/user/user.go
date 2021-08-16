@@ -14,7 +14,7 @@ type Client struct {
 	*client.Client
 }
 
-func GetLastSeen(whois types.Whois) (int) {
+func GetLastSeen(whois types.Whois) int {
 	LastAccess := 0
 	for _, dev := range whois.Devices {
 		for _, sess := range dev.Sessions {
@@ -28,6 +28,26 @@ func GetLastSeen(whois types.Whois) (int) {
 	return LastAccess
 }
 
+// Methods
+func (c *Client) ListLastSeen(Since int) ([]string, error) {
+	Since = Since * 1000 // Matrix uses Unix time in milliseconds
+	var LastSeenUsers []string
+	users, err := c.ListUsers()
+	if err != nil {
+		return LastSeenUsers, err
+	}
+	for _, u := range users {
+		whois, err := c.WhoisUser(u.Name)
+		if err != nil {
+			return LastSeenUsers, err
+		}
+		if GetLastSeen(whois) >= Since {
+			LastSeenUsers = append(LastSeenUsers, u.Name)
+		}
+	}
+	return LastSeenUsers, nil
+
+}
 func (c *Client) WhoisUser(UserId string) (types.Whois, error) {
 	var whois types.Whois
 	// Build URL
@@ -53,7 +73,6 @@ func (c *Client) WhoisUser(UserId string) (types.Whois, error) {
 	return whois, err
 }
 
-// Methods
 func (c *Client) ListUsers() ([]types.User, error) {
 	// Build URL
 	u, err := url.Parse(c.BuildBaseURL("_synapse", "admin", "v2", "users"))

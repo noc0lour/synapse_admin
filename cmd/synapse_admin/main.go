@@ -24,6 +24,9 @@ var args struct {
 		Whois struct {
 			UserId string `arg help: "UserID"`
 		} `cmd help: "Query whois information of a single user"`
+		ListLastSeen struct {
+			Since int `help: Unix time since when to check for Users`
+		} `cmd help:"List local user accounts"`
 	} `cmd help:"User administration"`
 	Room struct {
 		List       struct{} `cmd help: "List rooms"`
@@ -88,7 +91,12 @@ func main() {
 				fmt.Printf("Whois() returned %v", err)
 			}
 			fmt.Printf("%+v\n", whois)
-
+		case "list-last-seen":
+			users, err := user_cli.ListLastSeen(args.User.ListLastSeen.Since)
+			if err != nil {
+				fmt.Printf("ListLastSeen() returned %v", err)
+			}
+			fmt.Printf("%v", strings.Join(users, "\n"))
 		default:
 			panic(user_cmd)
 		}
